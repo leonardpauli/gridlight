@@ -203,6 +203,28 @@
 			border-color: white;
 		}
 		
+		#loadingIndicator {
+			position: fixed;
+			top: 50%;
+			left: 50%;
+			transform: translate(-50%, -50%);
+			background-color: rgba(0, 0, 0, 0.8);
+			color: white;
+			padding: 15px 30px;
+			border-radius: 25px;
+			font-size: 16px;
+			z-index: 1000;
+			display: none;
+			backdrop-filter: blur(5px);
+			animation: pulse 1.5s infinite;
+		}
+		
+		@keyframes pulse {
+			0% { opacity: 0.6; }
+			50% { opacity: 1; }
+			100% { opacity: 0.6; }
+		}
+		
 		.btn-group {
 			display: flex;
 			justify-content: space-between;
@@ -334,6 +356,8 @@
 	</div>
 	
 	<input type="file" id="upload" accept="image/*">
+
+	<div id="loadingIndicator">Saving image...</div>
 
 <script>
 // DOM Elements
@@ -511,13 +535,13 @@ function showControls() {
 		controlsVisible = true;
 	}
 	
-	clearTimeout(controlsTimeout);
-	controlsTimeout = setTimeout(() => {
-		if (controlsVisible && !settingsPanel.classList.contains('open')) {
-			controlsBar.classList.add('hidden');
-			controlsVisible = false;
-		}
-	}, 3000);
+	// clearTimeout(controlsTimeout);
+	// controlsTimeout = setTimeout(() => {
+	// 	if (controlsVisible && !settingsPanel.classList.contains('open')) {
+	// 		controlsBar.classList.add('hidden');
+	// 		controlsVisible = false;
+	// 	}
+	// }, 3000);
 }
 
 // Touch handler functions
@@ -614,52 +638,75 @@ function handleTouchEnd(e) {
 function exportImageWithGrid() {
 	if (!isImageLoaded) return;
 	
-	// Create a temporary canvas for exporting
-	const exportCanvas = document.createElement('canvas');
-	const exportCtx = exportCanvas.getContext('2d');
+	const loadingIndicator = document.getElementById('loadingIndicator');
+	loadingIndicator.style.display = 'block';
 	
-	// Set canvas dimensions to match original image
-	exportCanvas.width = imageWidth;
-	exportCanvas.height = imageHeight;
-	
-	// Draw the image
-	exportCtx.drawImage(imageElement, 0, 0, imageWidth, imageHeight);
-	
-	if (gridVisible) {
-		// Draw grid on top of image
-		exportCtx.strokeStyle = gridColor;
-		exportCtx.lineWidth = lineThickness * (imageWidth / imageElement.getBoundingClientRect().width);
-		exportCtx.globalAlpha = gridOpacity;
+	// Use setTimeout to allow the loading indicator to show before the heavy processing
+	setTimeout(() => {
+		const paddingFactor = 0.15; // 15% padding on each side
 		
-		const cellWidth = imageWidth / gridSize;
-		const cellHeight = imageHeight / gridSize;
+		// Create a temporary canvas for exporting
+		const exportCanvas = document.createElement('canvas');
+		const exportCtx = exportCanvas.getContext('2d');
 		
-		// Calculate grid offset in original image coordinates
-		const normalizedOffsetX = gridOffsetX * (imageWidth / imageElement.getBoundingClientRect().width);
-		const normalizedOffsetY = gridOffsetY * (imageHeight / imageElement.getBoundingClientRect().height);
+		// Set canvas dimensions to include padding
+		const paddedWidth = imageWidth * (1 + 2 * paddingFactor);
+		const paddedHeight = imageHeight * (1 + 2 * paddingFactor);
+		exportCanvas.width = paddedWidth;
+		exportCanvas.height = paddedHeight;
 		
-		// Draw horizontal lines
-		for (let i = 0; i <= gridSize; i++) {
-			exportCtx.beginPath();
-			exportCtx.moveTo(0, normalizedOffsetY + (i * cellHeight * gridScale));
-			exportCtx.lineTo(imageWidth, normalizedOffsetY + (i * cellHeight * gridScale));
-			exportCtx.stroke();
+		// Fill with black background
+		exportCtx.fillStyle = '#000000';
+		exportCtx.fillRect(0, 0, paddedWidth, paddedHeight);
+		
+		// Calculate padding offset
+		const paddingX = imageWidth * paddingFactor;
+		const paddingY = imageHeight * paddingFactor;
+		
+		// Draw the image with padding
+		exportCtx.drawImage(imageElement, paddingX, paddingY, imageWidth, imageHeight);
+		
+		if (gridVisible) {
+			// Draw grid on top of image
+			exportCtx.strokeStyle = gridColor;
+			exportCtx.lineWidth = lineThickness * (imageWidth / imageElement.getBoundingClientRect().width);
+			exportCtx.globalAlpha = gridOpacity;
+			
+			const cellWidth = imageWidth / gridSize;
+			const cellHeight = imageHeight / gridSize;
+			
+			// Calculate grid offset in original image coordinates
+			const normalizedOffsetX = gridOffsetX * (imageWidth / imageElement.getBoundingClientRect().width);
+			const normalizedOffsetY = gridOffsetY * (imageHeight / imageElement.getBoundingClientRect().height);
+			
+			// Draw horizontal lines (with padding offset)
+			for (let i = 0; i <= gridSize; i++) {
+				exportCtx.beginPath();
+				exportCtx.moveTo(paddingX, paddingY + normalizedOffsetY + (i * cellHeight * gridScale));
+				exportCtx.lineTo(paddingX + imageWidth, paddingY + normalizedOffsetY + (i * cellHeight * gridScale));
+				exportCtx.stroke();
+			}
+			
+			// Draw vertical lines (with padding offset)
+			for (let i = 0; i <= gridSize; i++) {
+				exportCtx.beginPath();
+				exportCtx.moveTo(paddingX + normalizedOffsetX + (i * cellWidth * gridScale), paddingY);
+				exportCtx.lineTo(paddingX + normalizedOffsetX + (i * cellWidth * gridScale), paddingY + imageHeight);
+				exportCtx.stroke();
+			}
 		}
 		
-		// Draw vertical lines
-		for (let i = 0; i <= gridSize; i++) {
-			exportCtx.beginPath();
-			exportCtx.moveTo(normalizedOffsetX + (i * cellWidth * gridScale), 0);
-			exportCtx.lineTo(normalizedOffsetX + (i * cellWidth * gridScale), imageHeight);
-			exportCtx.stroke();
-		}
-	}
-	
-	// Create download link
-	const link = document.createElement('a');
-	link.download = 'grid-reference.png';
-	link.href = exportCanvas.toDataURL('image/png');
-	link.click();
+		// Create download link
+		const link = document.createElement('a');
+		link.download = 'grid-reference.png';
+		link.href = exportCanvas.toDataURL('image/png');
+		
+		// Hide loading indicator after a short delay to ensure it's visible during processing
+		setTimeout(() => {
+			loadingIndicator.style.display = 'none';
+			link.click();
+		}, 300);
+	}, 50);
 }
 
 // Event listeners
