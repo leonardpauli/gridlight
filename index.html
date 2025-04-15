@@ -1,791 +1,841 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Artist Grid Reference Tool</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            touch-action: none;
-        }
-        
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-            overflow: hidden;
-            position: fixed;
-            width: 100%;
-            height: 100%;
-            background-color: #000;
-            color: #fff;
-        }
-        
-        #container {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            touch-action: none;
-        }
-        
-        #imageContainer {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-        
-        #imageElement {
-            max-width: 100%;
-            max-height: 100%;
-            transition: filter 0.3s ease;
-            transform-origin: 0 0;
-            pointer-events: none;
-        }
-        
-        #gridOverlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            z-index: 10;
-        }
-        
-        #controlsBar {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            background-color: rgba(0, 0, 0, 0.6);
-            backdrop-filter: blur(10px);
-            display: flex;
-            justify-content: space-around;
-            align-items: center;
-            padding: 10px 0;
-            z-index: 100;
-            transition: transform 0.3s ease;
-        }
-        
-        #controlsBar.hidden {
-            transform: translateY(100%);
-        }
-        
-        .control-btn {
-            background-color: rgba(255, 255, 255, 0.2);
-            border: none;
-            color: white;
-            width: 45px;
-            height: 45px;
-            border-radius: 50%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 20px;
-            cursor: pointer;
-        }
-        
-        .control-btn:active {
-            background-color: rgba(255, 255, 255, 0.4);
-        }
-        
-        #modeIndicator {
-            position: fixed;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background-color: rgba(0, 0, 0, 0.6);
-            color: white;
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-size: 14px;
-            opacity: 0.8;
-            z-index: 100;
-            transition: opacity 0.5s ease;
-        }
-        
-        #modeIndicator.fadeOut {
-            opacity: 0;
-        }
-        
-        #settingsPanel {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            background-color: rgba(0, 0, 0, 0.8);
-            backdrop-filter: blur(10px);
-            padding: 20px;
-            transform: translateY(100%);
-            transition: transform 0.3s ease;
-            z-index: 90;
-            border-top-left-radius: 15px;
-            border-top-right-radius: 15px;
-            max-height: 70vh;
-            overflow-y: auto;
-        }
-        
-        #settingsPanel.open {
-            transform: translateY(0);
-        }
-        
-        .settings-group {
-            margin-bottom: 20px;
-        }
-        
-        .settings-title {
-            font-size: 16px;
-            margin-bottom: 10px;
-            color: #ccc;
-        }
-        
-        .slider-container {
-            display: flex;
-            align-items: center;
-            margin-bottom: 15px;
-        }
-        
-        .slider-label {
-            width: 100px;
-            font-size: 14px;
-        }
-        
-        .slider {
-            flex-grow: 1;
-            margin: 0 10px;
-            -webkit-appearance: none;
-            height: 5px;
-            background: #444;
-            border-radius: 5px;
-        }
-        
-        .slider::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            width: 20px;
-            height: 20px;
-            background: white;
-            border-radius: 50%;
-        }
-        
-        .slider-value {
-            width: 40px;
-            text-align: right;
-            font-size: 14px;
-        }
-        
-        .color-options {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 15px;
-        }
-        
-        .color-option {
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
-            border: 2px solid transparent;
-            cursor: pointer;
-        }
-        
-        .color-option.selected {
-            border-color: white;
-        }
-        
-        .btn-group {
-            display: flex;
-            justify-content: space-between;
-        }
-        
-        .settings-btn {
-            background-color: rgba(255, 255, 255, 0.2);
-            border: none;
-            color: white;
-            padding: 10px 15px;
-            border-radius: 8px;
-            font-size: 14px;
-            cursor: pointer;
-        }
-        
-        .settings-btn:active {
-            background-color: rgba(255, 255, 255, 0.4);
-        }
-        
-        #upload {
-            display: none;
-        }
-        
-        #uploadOverlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.8);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 200;
-        }
-        
-        #uploadBtn {
-            background-color: rgba(255, 255, 255, 0.2);
-            border: 2px dashed white;
-            color: white;
-            padding: 30px;
-            border-radius: 10px;
-            font-size: 18px;
-            cursor: pointer;
-            margin-bottom: 20px;
-            text-align: center;
-            width: 80%;
-            max-width: 300px;
-        }
-        
-        #uploadInfo {
-            color: #ccc;
-            text-align: center;
-            font-size: 14px;
-            max-width: 300px;
-            line-height: 1.5;
-        }
-    </style>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+	<title>Artist Grid Reference Tool</title>
+	<style>
+		* {
+			margin: 0;
+			padding: 0;
+			box-sizing: border-box;
+			touch-action: none;
+		}
+		
+		body {
+			font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+			overflow: hidden;
+			position: fixed;
+			width: 100%;
+			height: 100%;
+			background-color: #000;
+			color: #fff;
+		}
+		
+		#container {
+			position: fixed;
+			top: 0;
+			left: 0;
+			width: 100%;
+			height: 100%;
+			overflow: hidden;
+			touch-action: none;
+		}
+		
+		#imageContainer {
+			position: absolute;
+			top: 0;
+			left: 0;
+			width: 100%;
+			height: 100%;
+			overflow: hidden;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+		}
+		
+		#imageElement {
+			max-width: 100%;
+			max-height: 100%;
+			transition: filter 0.3s ease;
+			transform-origin: 0 0;
+			pointer-events: none;
+		}
+		
+		#gridOverlay {
+			position: absolute;
+			top: 0;
+			left: 0;
+			width: 100%;
+			height: 100%;
+			pointer-events: none;
+			z-index: 10;
+		}
+		
+		#controlsBar {
+			position: fixed;
+			bottom: 0;
+			left: 0;
+			width: 100%;
+			background-color: rgba(0, 0, 0, 0.6);
+			backdrop-filter: blur(10px);
+			display: flex;
+			justify-content: space-around;
+			align-items: center;
+			padding: 10px 0;
+			z-index: 100;
+			transition: transform 0.3s ease;
+		}
+		
+		#controlsBar.hidden {
+			transform: translateY(100%);
+		}
+		
+		.control-btn {
+			--background-color: rgba(255, 255, 255, 0.2);
+			background: transparent;
+			border: none;
+			color: white;
+			width: 45px;
+			height: 45px;
+			--border-radius: 50%;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			font-size: 20px;
+			cursor: pointer;
+		}
+		
+		.control-btn:active {
+			--background-color: rgba(255, 255, 255, 0.4);
+			opacity: 0.8;
+		}
+		
+		#modeIndicator {
+			position: fixed;
+			top: 20px;
+			left: 50%;
+			transform: translateX(-50%);
+			background-color: rgba(0, 0, 0, 0.6);
+			color: white;
+			padding: 8px 16px;
+			border-radius: 20px;
+			font-size: 14px;
+			opacity: 0.8;
+			z-index: 100;
+			transition: opacity 0.5s ease;
+		}
+		
+		#modeIndicator.fadeOut {
+			opacity: 0;
+		}
+		
+		#settingsPanel {
+			position: fixed;
+			bottom: 0;
+			left: 0;
+			width: 100%;
+			background-color: rgba(0, 0, 0, 0.8);
+			backdrop-filter: blur(10px);
+			padding: 20px;
+			transform: translateY(100%);
+			transition: transform 0.3s ease;
+			z-index: 90;
+			border-top-left-radius: 15px;
+			border-top-right-radius: 15px;
+			max-height: 70vh;
+			overflow-y: auto;
+		}
+		
+		#settingsPanel.open {
+			transform: translateY(0);
+		}
+		
+		.settings-group {
+			margin-bottom: 20px;
+		}
+		
+		.settings-title {
+			font-size: 16px;
+			margin-bottom: 10px;
+			color: #ccc;
+		}
+		
+		.slider-container {
+			display: flex;
+			align-items: center;
+			margin-bottom: 15px;
+		}
+		
+		.slider-label {
+			width: 100px;
+			font-size: 14px;
+		}
+		
+		.slider {
+			flex-grow: 1;
+			margin: 0 10px;
+			-webkit-appearance: none;
+			height: 5px;
+			background: #444;
+			border-radius: 5px;
+		}
+		
+		.slider::-webkit-slider-thumb {
+			-webkit-appearance: none;
+			width: 20px;
+			height: 20px;
+			background: white;
+			border-radius: 50%;
+		}
+		
+		.slider-value {
+			width: 40px;
+			text-align: right;
+			font-size: 14px;
+		}
+		
+		.color-options {
+			display: flex;
+			gap: 10px;
+			margin-bottom: 15px;
+		}
+		
+		.color-option {
+			width: 30px;
+			height: 30px;
+			border-radius: 50%;
+			border: 2px solid transparent;
+			cursor: pointer;
+		}
+		
+		.color-option.selected {
+			border-color: white;
+		}
+		
+		.btn-group {
+			display: flex;
+			justify-content: space-between;
+		}
+		
+		.settings-btn {
+			background-color: rgba(255, 255, 255, 0.2);
+			border: none;
+			color: white;
+			padding: 10px 15px;
+			border-radius: 8px;
+			font-size: 14px;
+			cursor: pointer;
+		}
+		
+		.settings-btn:active {
+			background-color: rgba(255, 255, 255, 0.4);
+		}
+		
+		#upload {
+			display: none;
+		}
+		
+		#uploadOverlay {
+			position: fixed;
+			top: 0;
+			left: 0;
+			width: 100%;
+			height: 100%;
+			background-color: rgba(0, 0, 0, 0.8);
+			display: flex;
+			flex-direction: column;
+			justify-content: center;
+			align-items: center;
+			z-index: 200;
+		}
+		
+		#uploadBtn {
+			background-color: rgba(255, 255, 255, 0.2);
+			border: 2px dashed white;
+			color: white;
+			padding: 30px;
+			border-radius: 10px;
+			font-size: 18px;
+			cursor: pointer;
+			margin-bottom: 20px;
+			text-align: center;
+			width: 80%;
+			max-width: 300px;
+		}
+		
+		#uploadInfo {
+			color: #ccc;
+			text-align: center;
+			font-size: 14px;
+			max-width: 300px;
+			line-height: 1.5;
+		}
+	</style>
 </head>
 <body>
-    <div id="container">
-        <div id="imageContainer">
-            <img id="imageElement" alt="Upload an image">
-        </div>
-        <canvas id="gridOverlay"></canvas>
-    </div>
-    
-    <div id="modeIndicator" class="fadeOut">Image Mode</div>
-    
-    <div id="controlsBar">
-        <button id="uploadBtn" class="control-btn" title="Upload Image">📄</button>
-        <button id="modeBtn" class="control-btn" title="Change Mode">🔄</button>
-        <button id="gridToggleBtn" class="control-btn" title="Toggle Grid">⊞</button>
-        <button id="settingsBtn" class="control-btn" title="Settings">⚙️</button>
-        <button id="exportBtn" class="control-btn" title="Export with Grid">💾</button>
-    </div>
-    
-    <div id="settingsPanel">
-        <div class="settings-group">
-            <div class="settings-title">Grid Settings</div>
-            <div class="slider-container">
-                <div class="slider-label">Grid Size</div>
-                <input type="range" min="2" max="20" value="5" class="slider" id="gridSizeSlider">
-                <div class="slider-value" id="gridSizeValue">5</div>
-            </div>
-            <div class="slider-container">
-                <div class="slider-label">Line Thickness</div>
-                <input type="range" min="1" max="10" value="2" class="slider" id="lineThicknessSlider">
-                <div class="slider-value" id="lineThicknessValue">2</div>
-            </div>
-            <div class="slider-container">
-                <div class="slider-label">Grid Opacity</div>
-                <input type="range" min="0" max="100" value="80" class="slider" id="gridOpacitySlider">
-                <div class="slider-value" id="gridOpacityValue">80%</div>
-            </div>
-            <div class="settings-title">Grid Color</div>
-            <div class="color-options">
-                <div class="color-option selected" style="background-color: #FFFFFF;" data-color="#FFFFFF"></div>
-                <div class="color-option" style="background-color: #FF0000;" data-color="#FF0000"></div>
-                <div class="color-option" style="background-color: #00FF00;" data-color="#00FF00"></div>
-                <div class="color-option" style="background-color: #000000;" data-color="#000000"></div>
-            </div>
-        </div>
-        
-        <div class="settings-group">
-            <div class="settings-title">Display Settings</div>
-            <div class="slider-container">
-                <div class="slider-label">Brightness</div>
-                <input type="range" min="0" max="200" value="100" class="slider" id="brightnessSlider">
-                <div class="slider-value" id="brightnessValue">100%</div>
-            </div>
-        </div>
-        
-        <div class="btn-group">
-            <button class="settings-btn" id="resetBtn">Reset All</button>
-            <button class="settings-btn" id="closeSettingsBtn">Close</button>
-        </div>
-    </div>
-    
-    <div id="uploadOverlay">
-        <div id="uploadBtn">
-            Tap to Upload an Image
-        </div>
-        <div id="uploadInfo">
-            Upload a reference photo to trace. Your image stays on your device and is not sent anywhere.
-        </div>
-    </div>
-    
-    <input type="file" id="upload" accept="image/*">
+	<div id="container">
+		<div id="imageContainer">
+			<img id="imageElement" alt="Upload an image">
+		</div>
+		<canvas id="gridOverlay"></canvas>
+	</div>
+	
+	<div id="modeIndicator" class="fadeOut">Image Mode</div>
+	
+	<div id="controlsBar">
+		<!-- <button id="uploadBtn" class="control-btn" title="Upload Image">📄</button> -->
+		<!-- <button id="modeBtn" class="control-btn" title="Change Mode">🔄</button> -->
+		<!-- <button id="gridToggleBtn" class="control-btn" title="Toggle Grid">⊞</button> -->
+		<button id="settingsBtn" class="control-btn" title="Settings">Options</button>
+		<button id="exportBtn" class="control-btn" title="Export with Grid">Save</button>
+	</div>
+	
+	<div id="settingsPanel">
+		<div class="settings-group">
+			<div class="settings-title">Grid Settings</div>
+			<div class="slider-container">
+				<div class="slider-label">Grid Size</div>
+				<input type="range" min="2" max="20" value="4" class="slider" id="gridSizeSlider">
+				<div class="slider-value" id="gridSizeValue">4</div>
+			</div>
+			<div class="slider-container">
+				<div class="slider-label">Line Thickness</div>
+				<input type="range" min="1" max="10" value="3" class="slider" id="lineThicknessSlider">
+				<div class="slider-value" id="lineThicknessValue">3</div>
+			</div>
+			<div class="slider-container">
+				<div class="slider-label">Grid Opacity</div>
+				<input type="range" min="0" max="100" value="100" class="slider" id="gridOpacitySlider">
+				<div class="slider-value" id="gridOpacityValue">100%</div>
+			</div>
+			<div class="slider-container">
+				<div class="slider-label">Brightness</div>
+				<input type="range" min="0" max="200" value="100" class="slider" id="brightnessSlider">
+				<div class="slider-value" id="brightnessValue">100%</div>
+			</div>
+			<div class="slider-container">
+				<div class="slider-label">Contrast</div>
+				<input type="range" min="0" max="200" value="100" class="slider" id="contrastSlider">
+				<div class="slider-value" id="contrastValue">100%</div>
+			</div>
+			<div class="settings-title">Grid Color</div>
+			<div class="color-options">
+				<div class="color-option selected" style="background-color: #FFFFFF;" data-color="#FFFFFF"></div>
+				<div class="color-option" style="background-color: #FF0000;" data-color="#FF0000"></div>
+				<div class="color-option" style="background-color: #00FF00;" data-color="#00FF00"></div>
+				<div class="color-option" style="background-color: #000000;" data-color="#000000"></div>
+			</div>
+		</div>
+		
+		<div class="btn-group">
+			<button class="settings-btn" id="resetBtn">Reset All</button>
+			<button class="settings-btn" id="closeSettingsBtn">Close</button>
+		</div>
+	</div>
+	
+	<div id="uploadOverlay">
+		<div id="uploadBtn">
+			Tap to Upload an Image
+		</div>
+		<div id="uploadInfo">
+			Upload a reference photo to trace. Your image stays on your device and is not sent anywhere.
+		</div>
+	</div>
+	
+	<input type="file" id="upload" accept="image/*">
 
-    <script>
-        // DOM Elements
-        const container = document.getElementById('container');
-        const imageElement = document.getElementById('imageElement');
-        const gridOverlay = document.getElementById('gridOverlay');
-        const controlsBar = document.getElementById('controlsBar');
-        const settingsPanel = document.getElementById('settingsPanel');
-        const modeIndicator = document.getElementById('modeIndicator');
-        const uploadOverlay = document.getElementById('uploadOverlay');
-        const uploadInput = document.getElementById('upload');
-        
-        // Control buttons
-        const uploadBtn = document.getElementById('uploadBtn');
-        const modeBtn = document.getElementById('modeBtn');
-        const gridToggleBtn = document.getElementById('gridToggleBtn');
-        const settingsBtn = document.getElementById('settingsBtn');
-        const exportBtn = document.getElementById('exportBtn');
-        const closeSettingsBtn = document.getElementById('closeSettingsBtn');
-        const resetBtn = document.getElementById('resetBtn');
-        
-        // Sliders
-        const gridSizeSlider = document.getElementById('gridSizeSlider');
-        const lineThicknessSlider = document.getElementById('lineThicknessSlider');
-        const gridOpacitySlider = document.getElementById('gridOpacitySlider');
-        const brightnessSlider = document.getElementById('brightnessSlider');
-        
-        // Values
-        const gridSizeValue = document.getElementById('gridSizeValue');
-        const lineThicknessValue = document.getElementById('lineThicknessValue');
-        const gridOpacityValue = document.getElementById('gridOpacityValue');
-        const brightnessValue = document.getElementById('brightnessValue');
-        
-        // State variables
-        let imageWidth = 0;
-        let imageHeight = 0;
-        let imageScale = 1;
-        let imageX = 0;
-        let imageY = 0;
-        let gridScale = 1;
-        let gridOffsetX = 0;
-        let gridOffsetY = 0;
-        let gridVisible = true;
-        let interactionMode = 'image'; // 'image', 'grid', 'both'
-        let controlsVisible = true;
-        let controlsTimeout;
-        let gridSize = 5;
-        let lineThickness = 2;
-        let gridOpacity = 0.8;
-        let gridColor = '#FFFFFF';
-        let brightness = 100;
-        let lastTouchDistance = 0;
-        let initialTouchDistance = 0;
-        let isImageLoaded = false;
-        
-        // Initialize canvas context
-        const ctx = gridOverlay.getContext('2d');
-        
-        // Update canvas size
-        function updateCanvasSize() {
-            gridOverlay.width = window.innerWidth;
-            gridOverlay.height = window.innerHeight;
-            drawGrid();
-        }
-        
-        // Initial setup
-        updateCanvasSize();
-        window.addEventListener('resize', updateCanvasSize);
-        
-        // Draw grid function
-        function drawGrid() {
-            if (!gridVisible || !isImageLoaded) {
-                ctx.clearRect(0, 0, gridOverlay.width, gridOverlay.height);
-                return;
-            }
-            
-            ctx.clearRect(0, 0, gridOverlay.width, gridOverlay.height);
-            
-            // Get displayed image dimensions and position
-            const rect = imageElement.getBoundingClientRect();
-            const displayedWidth = rect.width;
-            const displayedHeight = rect.height;
-            const displayedX = rect.left;
-            const displayedY = rect.top;
-            
-            ctx.strokeStyle = gridColor;
-            ctx.lineWidth = lineThickness;
-            ctx.globalAlpha = gridOpacity;
-            
-            // Calculate cell size based on grid size
-            const cellWidth = displayedWidth / gridSize;
-            const cellHeight = displayedHeight / gridSize;
-            
-            // Apply grid offset and scale
-            const effectiveOffsetX = (gridOffsetX * gridScale) + displayedX;
-            const effectiveOffsetY = (gridOffsetY * gridScale) + displayedY;
-            
-            // Draw horizontal lines
-            for (let i = 0; i <= gridSize; i++) {
-                const y = effectiveOffsetY + (i * cellHeight * gridScale);
-                if (y >= displayedY && y <= displayedY + displayedHeight) {
-                    ctx.beginPath();
-                    ctx.moveTo(displayedX, y);
-                    ctx.lineTo(displayedX + displayedWidth, y);
-                    ctx.stroke();
-                }
-            }
-            
-            // Draw vertical lines
-            for (let i = 0; i <= gridSize; i++) {
-                const x = effectiveOffsetX + (i * cellWidth * gridScale);
-                if (x >= displayedX && x <= displayedX + displayedWidth) {
-                    ctx.beginPath();
-                    ctx.moveTo(x, displayedY);
-                    ctx.lineTo(x, displayedY + displayedHeight);
-                    ctx.stroke();
-                }
-            }
-        }
-        
-        // Apply brightness filter
-        function applyBrightness() {
-            imageElement.style.filter = `brightness(${brightness}%)`;
-        }
-        
-        // Show mode indicator
-        function showModeIndicator() {
-            modeIndicator.textContent = interactionMode.charAt(0).toUpperCase() + interactionMode.slice(1) + ' Mode';
-            modeIndicator.classList.remove('fadeOut');
-            
-            clearTimeout(modeIndicator.fadeTimeout);
-            modeIndicator.fadeTimeout = setTimeout(() => {
-                modeIndicator.classList.add('fadeOut');
-            }, 2000);
-        }
-        
-        // Toggle controls visibility
-        function showControls() {
-            if (!controlsVisible) {
-                controlsBar.classList.remove('hidden');
-                controlsVisible = true;
-            }
-            
-            clearTimeout(controlsTimeout);
-            controlsTimeout = setTimeout(() => {
-                if (controlsVisible && !settingsPanel.classList.contains('open')) {
-                    controlsBar.classList.add('hidden');
-                    controlsVisible = false;
-                }
-            }, 3000);
-        }
-        
-        // Touch handler functions
-        let lastTouchX = 0;
-        let lastTouchY = 0;
-        let isDragging = false;
-        
-        function handleTouchStart(e) {
-            e.preventDefault();
-            showControls();
-            
-            if (e.touches.length === 1) {
-                isDragging = true;
-                lastTouchX = e.touches[0].clientX;
-                lastTouchY = e.touches[0].clientY;
-            } else if (e.touches.length === 2) {
-                // Pinch to zoom
-                isDragging = false;
-                const touch1 = e.touches[0];
-                const touch2 = e.touches[1];
-                lastTouchDistance = Math.hypot(
-                    touch2.clientX - touch1.clientX,
-                    touch2.clientY - touch1.clientY
-                );
-                initialTouchDistance = lastTouchDistance;
-            }
-        }
-        
-        function handleTouchMove(e) {
-            e.preventDefault();
-            
-            if (isDragging && e.touches.length === 1) {
-                // Handle panning
-                const touchX = e.touches[0].clientX;
-                const touchY = e.touches[0].clientY;
-                const deltaX = touchX - lastTouchX;
-                const deltaY = touchY - lastTouchY;
-                
-                if (interactionMode === 'image' || interactionMode === 'both') {
-                    imageX += deltaX;
-                    imageY += deltaY;
-                    imageElement.style.transform = `translate(${imageX}px, ${imageY}px) scale(${imageScale})`;
-                }
-                
-                if (interactionMode === 'grid' || interactionMode === 'both') {
-                    gridOffsetX += deltaX / gridScale;
-                    gridOffsetY += deltaY / gridScale;
-                    drawGrid();
-                }
-                
-                lastTouchX = touchX;
-                lastTouchY = touchY;
-            } else if (e.touches.length === 2) {
-                // Handle pinch zoom
-                const touch1 = e.touches[0];
-                const touch2 = e.touches[1];
-                const currentDistance = Math.hypot(
-                    touch2.clientX - touch1.clientX,
-                    touch2.clientY - touch1.clientY
-                );
-                
-                if (lastTouchDistance > 0) {
-                    const scaleFactor = currentDistance / lastTouchDistance;
-                    
-                    if (interactionMode === 'image' || interactionMode === 'both') {
-                        imageScale *= scaleFactor;
-                        imageScale = Math.max(0.1, Math.min(imageScale, 10)); // Limit scale
-                        imageElement.style.transform = `translate(${imageX}px, ${imageY}px) scale(${imageScale})`;
-                    }
-                    
-                    if (interactionMode === 'grid' || interactionMode === 'both') {
-                        gridScale *= scaleFactor;
-                        gridScale = Math.max(0.1, Math.min(gridScale, 10)); // Limit scale
-                        drawGrid();
-                    }
-                }
-                
-                lastTouchDistance = currentDistance;
-            }
-        }
-        
-        function handleTouchEnd(e) {
-            if (e.touches.length === 0) {
-                isDragging = false;
-            } else if (e.touches.length === 1) {
-                lastTouchX = e.touches[0].clientX;
-                lastTouchY = e.touches[0].clientY;
-                lastTouchDistance = 0;
-            }
-        }
-        
-        // Export function
-        function exportImageWithGrid() {
-            if (!isImageLoaded) return;
-            
-            // Create a temporary canvas for exporting
-            const exportCanvas = document.createElement('canvas');
-            const exportCtx = exportCanvas.getContext('2d');
-            
-            // Set canvas dimensions to match original image
-            exportCanvas.width = imageWidth;
-            exportCanvas.height = imageHeight;
-            
-            // Draw the image
-            exportCtx.drawImage(imageElement, 0, 0, imageWidth, imageHeight);
-            
-            if (gridVisible) {
-                // Draw grid on top of image
-                exportCtx.strokeStyle = gridColor;
-                exportCtx.lineWidth = lineThickness * (imageWidth / imageElement.getBoundingClientRect().width);
-                exportCtx.globalAlpha = gridOpacity;
-                
-                const cellWidth = imageWidth / gridSize;
-                const cellHeight = imageHeight / gridSize;
-                
-                // Calculate grid offset in original image coordinates
-                const normalizedOffsetX = gridOffsetX * (imageWidth / imageElement.getBoundingClientRect().width);
-                const normalizedOffsetY = gridOffsetY * (imageHeight / imageElement.getBoundingClientRect().height);
-                
-                // Draw horizontal lines
-                for (let i = 0; i <= gridSize; i++) {
-                    exportCtx.beginPath();
-                    exportCtx.moveTo(0, normalizedOffsetY + (i * cellHeight * gridScale));
-                    exportCtx.lineTo(imageWidth, normalizedOffsetY + (i * cellHeight * gridScale));
-                    exportCtx.stroke();
-                }
-                
-                // Draw vertical lines
-                for (let i = 0; i <= gridSize; i++) {
-                    exportCtx.beginPath();
-                    exportCtx.moveTo(normalizedOffsetX + (i * cellWidth * gridScale), 0);
-                    exportCtx.lineTo(normalizedOffsetX + (i * cellWidth * gridScale), imageHeight);
-                    exportCtx.stroke();
-                }
-            }
-            
-            // Create download link
-            const link = document.createElement('a');
-            link.download = 'grid-reference.png';
-            link.href = exportCanvas.toDataURL('image/png');
-            link.click();
-        }
-        
-        // Event listeners
-        container.addEventListener('touchstart', handleTouchStart, { passive: false });
-        container.addEventListener('touchmove', handleTouchMove, { passive: false });
-        container.addEventListener('touchend', handleTouchEnd);
-        container.addEventListener('click', showControls);
-        
-        // Mode cycling
-        modeBtn.addEventListener('click', () => {
-            switch (interactionMode) {
-                case 'image':
-                    interactionMode = 'grid';
-                    break;
-                case 'grid':
-                    interactionMode = 'both';
-                    break;
-                case 'both':
-                    interactionMode = 'image';
-                    break;
-            }
-            showModeIndicator();
-        });
-        
-        // Grid toggle
-        gridToggleBtn.addEventListener('click', () => {
-            gridVisible = !gridVisible;
-            drawGrid();
-        });
-        
-        // Settings button
-        settingsBtn.addEventListener('click', () => {
-            settingsPanel.classList.toggle('open');
-        });
-        
-        // Close settings
-        closeSettingsBtn.addEventListener('click', () => {
-            settingsPanel.classList.remove('open');
-        });
-        
-        // Export button
-        exportBtn.addEventListener('click', exportImageWithGrid);
-        
-        // Reset button
-        resetBtn.addEventListener('click', () => {
-            imageX = 0;
-            imageY = 0;
-            imageScale = 1;
-            gridOffsetX = 0;
-            gridOffsetY = 0;
-            gridScale = 1;
-            gridSize = 5;
-            lineThickness = 2;
-            gridOpacity = 0.8;
-            gridColor = '#FFFFFF';
-            brightness = 100;
-            
-            // Update UI
-            gridSizeSlider.value = gridSize;
-            gridSizeValue.textContent = gridSize;
-            lineThicknessSlider.value = lineThickness;
-            lineThicknessValue.textContent = lineThickness;
-            gridOpacitySlider.value = gridOpacity * 100;
-            gridOpacityValue.textContent = gridOpacity * 100 + '%';
-            brightnessSlider.value = brightness;
-            brightnessValue.textContent = brightness + '%';
-            
-            // Select white color option
-            document.querySelectorAll('.color-option').forEach(option => {
-                option.classList.remove('selected');
-                if (option.dataset.color === '#FFFFFF') {
-                    option.classList.add('selected');
-                }
-            });
-            
-            // Apply changes
-            imageElement.style.transform = `translate(${imageX}px, ${imageY}px) scale(${imageScale})`;
-            applyBrightness();
-            drawGrid();
-        });
-        
-        // Update grid size
-        gridSizeSlider.addEventListener('input', () => {
-            gridSize = parseInt(gridSizeSlider.value);
-            gridSizeValue.textContent = gridSize;
-            drawGrid();
-        });
-        
-        // Update line thickness
-        lineThicknessSlider.addEventListener('input', () => {
-            lineThickness = parseInt(lineThicknessSlider.value);
-            lineThicknessValue.textContent = lineThickness;
-            drawGrid();
-        });
-        
-        // Update grid opacity
-        gridOpacitySlider.addEventListener('input', () => {
-            gridOpacity = parseInt(gridOpacitySlider.value) / 100;
-            gridOpacityValue.textContent = gridOpacitySlider.value + '%';
-            drawGrid();
-        });
-        
-        // Update brightness
-        brightnessSlider.addEventListener('input', () => {
-            brightness = parseInt(brightnessSlider.value);
-            brightnessValue.textContent = brightness + '%';
-            applyBrightness();
-        });
-        
-        // Grid color selection
-        document.querySelectorAll('.color-option').forEach(option => {
-            option.addEventListener('click', () => {
-                document.querySelectorAll('.color-option').forEach(opt => {
-                    opt.classList.remove('selected');
-                });
-                option.classList.add('selected');
-                gridColor = option.dataset.color;
-                drawGrid();
-            });
-        });
-        
-        // Upload image
-        uploadOverlay.addEventListener('click', () => {
-            uploadInput.click();
-        });
-        
-        uploadBtn.addEventListener('click', () => {
-            uploadInput.click();
-        });
-        
-        uploadInput.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = (event) => {
-                    const img = new Image();
-                    img.onload = () => {
-                        imageWidth = img.width;
-                        imageHeight = img.height;
-                        imageElement.src = img.src;
-                        
-                        // Reset transforms
-                        imageX = 0;
-                        imageY = 0;
-                        imageScale = 1;
-                        gridOffsetX = 0;
-                        gridOffsetY = 0;
-                        gridScale = 1;
-                        
-                        imageElement.style.transform = `translate(${imageX}px, ${imageY}px) scale(${imageScale})`;
-                        
-                        isImageLoaded = true;
-                        uploadOverlay.style.display = 'none';
-                        drawGrid();
-                    };
-                    img.src = event.target.result;
-                };
-                reader.readAsDataURL(file);
-            }
-        });
-        
-        // Initial setup
-        showControls();
-        showModeIndicator();
-    </script>
+<script>
+// DOM Elements
+const container = document.getElementById('container');
+const imageElement = document.getElementById('imageElement');
+const gridOverlay = document.getElementById('gridOverlay');
+const controlsBar = document.getElementById('controlsBar');
+const settingsPanel = document.getElementById('settingsPanel');
+const modeIndicator = document.getElementById('modeIndicator');
+const uploadOverlay = document.getElementById('uploadOverlay');
+const uploadInput = document.getElementById('upload');
+
+// Control buttons
+const uploadBtn = document.getElementById('uploadBtn');
+const modeBtn = document.getElementById('modeBtn');
+const gridToggleBtn = document.getElementById('gridToggleBtn');
+const settingsBtn = document.getElementById('settingsBtn');
+const exportBtn = document.getElementById('exportBtn');
+const closeSettingsBtn = document.getElementById('closeSettingsBtn');
+const resetBtn = document.getElementById('resetBtn');
+
+// Sliders
+const gridSizeSlider = document.getElementById('gridSizeSlider');
+const lineThicknessSlider = document.getElementById('lineThicknessSlider');
+const gridOpacitySlider = document.getElementById('gridOpacitySlider');
+const brightnessSlider = document.getElementById('brightnessSlider');
+const contrastSlider = document.getElementById('contrastSlider');
+
+// Values
+const gridSizeValue = document.getElementById('gridSizeValue');
+const lineThicknessValue = document.getElementById('lineThicknessValue');
+const gridOpacityValue = document.getElementById('gridOpacityValue');
+const brightnessValue = document.getElementById('brightnessValue');
+const contrastValue = document.getElementById('contrastValue');
+
+// State variables
+let imageWidth = 0;
+let imageHeight = 0;
+let imageScale = 1;
+let imageX = 0;
+let imageY = 0;
+let gridScale = 1;
+let gridOffsetX = 0;
+let gridOffsetY = 0;
+let gridVisible = true;
+let interactionMode = 'image'; // 'image', 'grid', 'both'
+let controlsVisible = true;
+let controlsTimeout;
+let gridSize = 4;
+let lineThickness = 3;
+let gridOpacity = 1;
+let gridColor = '#FFFFFF';
+let brightness = 100;
+let contrast = 100;
+let lastTouchDistance = 0;
+let initialTouchDistance = 0;
+let isImageLoaded = false;
+
+// Initialize canvas context
+const ctx = gridOverlay.getContext('2d');
+
+// Initialize UI elements to match variables
+function initializeUI() {
+	// Set slider values
+	gridSizeSlider.value = gridSize;
+	gridSizeValue.textContent = gridSize;
+	
+	lineThicknessSlider.value = lineThickness;
+	lineThicknessValue.textContent = lineThickness;
+	
+	gridOpacitySlider.value = gridOpacity * 100;
+	gridOpacityValue.textContent = gridOpacity * 100 + '%';
+	
+	brightnessSlider.value = brightness;
+	brightnessValue.textContent = brightness + '%';
+	
+	contrastSlider.value = contrast;
+	contrastValue.textContent = contrast + '%';
+	
+	// Set initial color selection
+	document.querySelectorAll('.color-option').forEach(option => {
+		option.classList.remove('selected');
+		if (option.dataset.color === gridColor) {
+			option.classList.add('selected');
+		}
+	});
+	
+	// Apply initial brightness/contrast
+	applyBrightness();
+}
+
+// Update canvas size
+function updateCanvasSize() {
+	gridOverlay.width = window.innerWidth;
+	gridOverlay.height = window.innerHeight;
+	drawGrid();
+}
+
+// Initial setup
+updateCanvasSize();
+initializeUI();
+window.addEventListener('resize', updateCanvasSize);
+
+// Draw grid function
+function drawGrid() {
+	if (!gridVisible || !isImageLoaded) {
+		ctx.clearRect(0, 0, gridOverlay.width, gridOverlay.height);
+		return;
+	}
+	
+	ctx.clearRect(0, 0, gridOverlay.width, gridOverlay.height);
+	
+	// Get displayed image dimensions and position
+	const rect = imageElement.getBoundingClientRect();
+	const displayedWidth = rect.width;
+	const displayedHeight = rect.height;
+	const displayedX = rect.left;
+	const displayedY = rect.top;
+	
+	ctx.strokeStyle = gridColor;
+	ctx.lineWidth = lineThickness;
+	ctx.globalAlpha = gridOpacity;
+	
+	// Calculate cell size based on grid size
+	const cellWidth = displayedWidth / gridSize;
+	const cellHeight = displayedHeight / gridSize;
+	
+	// Apply grid offset and scale
+	const effectiveOffsetX = (gridOffsetX * gridScale) + displayedX;
+	const effectiveOffsetY = (gridOffsetY * gridScale) + displayedY;
+	
+	// Draw horizontal lines
+	for (let i = 0; i <= gridSize; i++) {
+		const y = effectiveOffsetY + (i * cellHeight * gridScale);
+		if (y >= displayedY && y <= displayedY + displayedHeight) {
+			ctx.beginPath();
+			ctx.moveTo(displayedX, y);
+			ctx.lineTo(displayedX + displayedWidth, y);
+			ctx.stroke();
+		}
+	}
+	
+	// Draw vertical lines
+	for (let i = 0; i <= gridSize; i++) {
+		const x = effectiveOffsetX + (i * cellWidth * gridScale);
+		if (x >= displayedX && x <= displayedX + displayedWidth) {
+			ctx.beginPath();
+			ctx.moveTo(x, displayedY);
+			ctx.lineTo(x, displayedY + displayedHeight);
+			ctx.stroke();
+		}
+	}
+}
+
+// Apply brightness filter
+function applyBrightness() {
+	imageElement.style.filter = `brightness(${brightness}%) contrast(${contrast}%)`;
+}
+
+// Show mode indicator
+function showModeIndicator() {
+	modeIndicator.textContent = interactionMode.charAt(0).toUpperCase() + interactionMode.slice(1) + ' Mode';
+	modeIndicator.classList.remove('fadeOut');
+	
+	clearTimeout(modeIndicator.fadeTimeout);
+	modeIndicator.fadeTimeout = setTimeout(() => {
+		modeIndicator.classList.add('fadeOut');
+	}, 2000);
+}
+
+// Toggle controls visibility
+function showControls() {
+	if (!controlsVisible) {
+		controlsBar.classList.remove('hidden');
+		controlsVisible = true;
+	}
+	
+	clearTimeout(controlsTimeout);
+	controlsTimeout = setTimeout(() => {
+		if (controlsVisible && !settingsPanel.classList.contains('open')) {
+			controlsBar.classList.add('hidden');
+			controlsVisible = false;
+		}
+	}, 3000);
+}
+
+// Touch handler functions
+let lastTouchX = 0;
+let lastTouchY = 0;
+let isDragging = false;
+
+function handleTouchStart(e) {
+	e.preventDefault();
+	showControls();
+	
+	if (e.touches.length === 1) {
+		isDragging = true;
+		lastTouchX = e.touches[0].clientX;
+		lastTouchY = e.touches[0].clientY;
+	} else if (e.touches.length === 2) {
+		// Pinch to zoom
+		isDragging = false;
+		const touch1 = e.touches[0];
+		const touch2 = e.touches[1];
+		lastTouchDistance = Math.hypot(
+			touch2.clientX - touch1.clientX,
+			touch2.clientY - touch1.clientY
+		);
+		initialTouchDistance = lastTouchDistance;
+	}
+}
+
+function handleTouchMove(e) {
+	return;
+	e.preventDefault();
+	
+	if (isDragging && e.touches.length === 1) {
+		// Handle panning
+		const touchX = e.touches[0].clientX;
+		const touchY = e.touches[0].clientY;
+		const deltaX = touchX - lastTouchX;
+		const deltaY = touchY - lastTouchY;
+		
+		if (interactionMode === 'image' || interactionMode === 'both') {
+			imageX += deltaX;
+			imageY += deltaY;
+			imageElement.style.transform = `translate(${imageX}px, ${imageY}px) scale(${imageScale})`;
+		}
+		
+		if (interactionMode === 'grid' || interactionMode === 'both') {
+			gridOffsetX += deltaX / gridScale;
+			gridOffsetY += deltaY / gridScale;
+			drawGrid();
+		}
+		
+		lastTouchX = touchX;
+		lastTouchY = touchY;
+	} else if (e.touches.length === 2) {
+		// Handle pinch zoom
+		const touch1 = e.touches[0];
+		const touch2 = e.touches[1];
+		const currentDistance = Math.hypot(
+			touch2.clientX - touch1.clientX,
+			touch2.clientY - touch1.clientY
+		);
+		
+		if (lastTouchDistance > 0) {
+			const scaleFactor = currentDistance / lastTouchDistance;
+			
+			if (interactionMode === 'image' || interactionMode === 'both') {
+				imageScale *= scaleFactor;
+				imageScale = Math.max(0.1, Math.min(imageScale, 10)); // Limit scale
+				imageElement.style.transform = `translate(${imageX}px, ${imageY}px) scale(${imageScale})`;
+			}
+			
+			if (interactionMode === 'grid' || interactionMode === 'both') {
+				gridScale *= scaleFactor;
+				gridScale = Math.max(0.1, Math.min(gridScale, 10)); // Limit scale
+				drawGrid();
+			}
+		}
+		
+		lastTouchDistance = currentDistance;
+	}
+}
+
+function handleTouchEnd(e) {
+	if (e.touches.length === 0) {
+		isDragging = false;
+	} else if (e.touches.length === 1) {
+		lastTouchX = e.touches[0].clientX;
+		lastTouchY = e.touches[0].clientY;
+		lastTouchDistance = 0;
+	}
+}
+
+// Export function
+function exportImageWithGrid() {
+	if (!isImageLoaded) return;
+	
+	// Create a temporary canvas for exporting
+	const exportCanvas = document.createElement('canvas');
+	const exportCtx = exportCanvas.getContext('2d');
+	
+	// Set canvas dimensions to match original image
+	exportCanvas.width = imageWidth;
+	exportCanvas.height = imageHeight;
+	
+	// Draw the image
+	exportCtx.drawImage(imageElement, 0, 0, imageWidth, imageHeight);
+	
+	if (gridVisible) {
+		// Draw grid on top of image
+		exportCtx.strokeStyle = gridColor;
+		exportCtx.lineWidth = lineThickness * (imageWidth / imageElement.getBoundingClientRect().width);
+		exportCtx.globalAlpha = gridOpacity;
+		
+		const cellWidth = imageWidth / gridSize;
+		const cellHeight = imageHeight / gridSize;
+		
+		// Calculate grid offset in original image coordinates
+		const normalizedOffsetX = gridOffsetX * (imageWidth / imageElement.getBoundingClientRect().width);
+		const normalizedOffsetY = gridOffsetY * (imageHeight / imageElement.getBoundingClientRect().height);
+		
+		// Draw horizontal lines
+		for (let i = 0; i <= gridSize; i++) {
+			exportCtx.beginPath();
+			exportCtx.moveTo(0, normalizedOffsetY + (i * cellHeight * gridScale));
+			exportCtx.lineTo(imageWidth, normalizedOffsetY + (i * cellHeight * gridScale));
+			exportCtx.stroke();
+		}
+		
+		// Draw vertical lines
+		for (let i = 0; i <= gridSize; i++) {
+			exportCtx.beginPath();
+			exportCtx.moveTo(normalizedOffsetX + (i * cellWidth * gridScale), 0);
+			exportCtx.lineTo(normalizedOffsetX + (i * cellWidth * gridScale), imageHeight);
+			exportCtx.stroke();
+		}
+	}
+	
+	// Create download link
+	const link = document.createElement('a');
+	link.download = 'grid-reference.png';
+	link.href = exportCanvas.toDataURL('image/png');
+	link.click();
+}
+
+// Event listeners
+container.addEventListener('touchstart', handleTouchStart, { passive: false });
+container.addEventListener('touchmove', handleTouchMove, { passive: false });
+container.addEventListener('touchend', handleTouchEnd);
+container.addEventListener('click', showControls);
+
+// Mode cycling
+false && modeBtn.addEventListener('click', () => {
+	switch (interactionMode) {
+		case 'image':
+			interactionMode = 'grid';
+			break;
+		case 'grid':
+			interactionMode = 'both';
+			break;
+		case 'both':
+			interactionMode = 'image';
+			break;
+	}
+	showModeIndicator();
+});
+
+// Grid toggle
+false && gridToggleBtn.addEventListener('click', () => {
+	gridVisible = !gridVisible;
+	drawGrid();
+});
+
+// Settings button
+settingsBtn.addEventListener('click', () => {
+	settingsPanel.classList.toggle('open');
+});
+
+// Close settings
+closeSettingsBtn.addEventListener('click', () => {
+	settingsPanel.classList.remove('open');
+});
+
+// Export button
+exportBtn.addEventListener('click', exportImageWithGrid);
+
+// Reset button
+resetBtn.addEventListener('click', () => {
+	imageX = 0;
+	imageY = 0;
+	imageScale = 1;
+	gridOffsetX = 0;
+	gridOffsetY = 0;
+	gridScale = 1;
+	gridSize = 4;
+	lineThickness = 1;
+	gridOpacity = 1;
+	gridColor = '#FFFFFF';
+	brightness = 100;
+	contrast = 100;
+	
+	// Update UI
+	gridSizeSlider.value = gridSize;
+	gridSizeValue.textContent = gridSize;
+	lineThicknessSlider.value = lineThickness;
+	lineThicknessValue.textContent = lineThickness;
+	gridOpacitySlider.value = gridOpacity * 100;
+	gridOpacityValue.textContent = gridOpacity * 100 + '%';
+	brightnessSlider.value = brightness;
+	brightnessValue.textContent = brightness + '%';
+	contrastSlider.value = contrast;
+	contrastValue.textContent = contrast + '%';
+	
+	// Select white color option
+	document.querySelectorAll('.color-option').forEach(option => {
+		option.classList.remove('selected');
+		if (option.dataset.color === '#FFFFFF') {
+			option.classList.add('selected');
+		}
+	});
+	
+	// Apply changes
+	imageElement.style.transform = `translate(${imageX}px, ${imageY}px) scale(${imageScale})`;
+	applyBrightness();
+	drawGrid();
+});
+
+// Update grid size
+gridSizeSlider.addEventListener('input', () => {
+	gridSize = parseInt(gridSizeSlider.value);
+	gridSizeValue.textContent = gridSize;
+	drawGrid();
+});
+
+// Update line thickness
+lineThicknessSlider.addEventListener('input', () => {
+	lineThickness = parseInt(lineThicknessSlider.value);
+	lineThicknessValue.textContent = lineThickness;
+	drawGrid();
+});
+
+// Update grid opacity
+gridOpacitySlider.addEventListener('input', () => {
+	gridOpacity = parseInt(gridOpacitySlider.value) / 100;
+	gridOpacityValue.textContent = gridOpacitySlider.value + '%';
+	drawGrid();
+});
+
+// Update brightness
+brightnessSlider.addEventListener('input', () => {
+	brightness = parseInt(brightnessSlider.value);
+	brightnessValue.textContent = brightness + '%';
+	applyBrightness();
+});
+
+// Update contrast
+contrastSlider.addEventListener('input', () => {
+	contrast = parseInt(contrastSlider.value);
+	contrastValue.textContent = contrast + '%';
+	applyBrightness();
+});
+
+// Grid color selection
+document.querySelectorAll('.color-option').forEach(option => {
+	option.addEventListener('click', () => {
+		document.querySelectorAll('.color-option').forEach(opt => {
+			opt.classList.remove('selected');
+		});
+		option.classList.add('selected');
+		gridColor = option.dataset.color;
+		drawGrid();
+	});
+});
+
+// Upload image
+uploadOverlay.addEventListener('click', () => {
+	uploadInput.click();
+});
+
+false && uploadBtn.addEventListener('click', () => {
+	uploadInput.click();
+});
+
+imageElement.style.display = 'none';
+uploadInput.addEventListener('change', (e) => {
+	const file = e.target.files[0];
+	if (file) {
+		const reader = new FileReader();
+		reader.onload = (event) => {
+			const img = new Image();
+			img.onload = () => {
+				imageElement.style.display = 'block';
+				imageWidth = img.width;
+				imageHeight = img.height;
+				imageElement.src = img.src;
+				
+				// Reset transforms
+				imageX = 0;
+				imageY = 0;
+				imageScale = 1;
+				gridOffsetX = 0;
+				gridOffsetY = 0;
+				gridScale = 1;
+				
+				imageElement.style.transform = `translate(${imageX}px, ${imageY}px) scale(${imageScale})`;
+				
+				isImageLoaded = true;
+				uploadOverlay.style.display = 'none';
+				drawGrid();
+			};
+			img.src = event.target.result;
+		};
+		reader.readAsDataURL(file);
+	}
+});
+
+// Initial setup
+showControls();
+showModeIndicator();
+</script>
 </body>
 </html>
